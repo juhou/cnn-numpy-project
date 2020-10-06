@@ -11,7 +11,7 @@ class Conv(AbstractLayer):
         self.activation = activation
         self.optimizer = optimizer
 
-    def forward(self, x):
+    def forward(self, inputs):
         """
         A naive implementation of the forward pass for a convolutional layer.
 
@@ -33,24 +33,12 @@ class Conv(AbstractLayer):
           W' = 1 + (W - WW) / stride
         """
 
+        s = (inputs.shape[1] - self.fshape[0]) / self.strides + 1
+        feature_map = np.zeros((inputs.shape[0], s, s, self.fshape[-1]))
+        for j in range(s):
+            for i in range(s):
+                feature_map[:, j, i, :] = np.sum(inputs[:, j * self.strides:j * self.strides + self.fshape[0], i * self.strides:i * self.strides + self.fshape[1], :, np.newaxis] * self.filters, axis=(1, 2, 3))
 
-        H = x.shape[0]
-        W = x.shape[1]
-        HH = self.fshape[0]
-        WW = self.fshape[1]
-
-        ###########################################################################
-        # TODO: Implement the Convolution layer forward pass.                     #
-        ###########################################################################
-        # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        feature_map = None
-        pass
-
-        # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        ###########################################################################
-        #                             END OF YOUR CODE                            #
-        ###########################################################################
         return (feature_map, self.activation.compute(feature_map))
 
     def get_activation_grad(self, z, upstream_gradient):
@@ -62,7 +50,7 @@ class Conv(AbstractLayer):
         s = int((backwarded_fmap.shape[1] - self.fshape[0]) / self.strides + 1)
         for j in range(s):
             for i in range(s):
-                backwarded_fmap[:, j * self.strides:j  * self.strides + self.fshape[0], i * self.strides:i * self.strides + self.fshape[1]] += \
+                backwarded_fmap[:, j * self.strides:j * self.strides + self.fshape[0], i * self.strides:i * self.strides + self.fshape[1]] += \
                     np.sum(self.w[np.newaxis, ...] * layer_err[:, j:j+1, i:i+1, np.newaxis, :], axis=4)
         return backwarded_fmap
 
@@ -73,7 +61,7 @@ class Conv(AbstractLayer):
         summed_inputs = np.sum(inputs, axis=0)
         for j in range(s):
             for i in range(s):
-                filters_err += summed_inputs[j  * self.strides:j * self.strides + self.fshape[0], i * self.strides:i * self.strides + self.fshape[1], :, np.newaxis]
+                filters_err += summed_inputs[j * self.strides:j * self.strides + self.fshape[0], i * self.strides:i * self.strides + self.fshape[1], :, np.newaxis]
         return filters_err * total_layer_err
 
     def update(self, grad, lr):
